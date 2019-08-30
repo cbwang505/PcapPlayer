@@ -23,7 +23,7 @@ The following sections (Code, and Starting the Server) contain all the required 
    * [Visual Studio minimum required version - VS Community 2017 15.7.0](https://www.visualstudio.com/thank-you-downloading-visual-studio/?sku=Community&rel=15)
    * [.NET Core 2.2 x64 SDK (Visual Studio 2017) Required](https://www.microsoft.com/net/download/visual-studio-sdks)
    * If using Visual Studio Community Edition, make sure the following two workloads are installed: .NET Core cross-platform development and .NET Desktop Development
-3. Open PcapPlayer.sln with Visual Studio and build the solution. 
+3. Open ACE.sln with Visual Studio and build the solution. 
 4. Download and install [Microsoft .NET Core Runtime - 2.2](https://www.microsoft.com/net/download) if you don't already have it.
 
 ### Starting the Server
