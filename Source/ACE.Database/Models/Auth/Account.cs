@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace ACE.Database.Models.Auth
@@ -20,6 +20,14 @@ namespace ACE.Database.Models.Auth
         public uint? BannedByAccountId { get; set; }
         public DateTime? BanExpireTime { get; set; }
         public string BanReason { get; set; }
+
+        public Account()
+        {
+            AccountId = 1;
+            AccountName = "Pcap Player";
+            AccessLevel = 6;
+            TotalTimesLoggedIn = 1;
+        }
 
         public Accesslevel AccessLevelNavigation { get; set; }
     }

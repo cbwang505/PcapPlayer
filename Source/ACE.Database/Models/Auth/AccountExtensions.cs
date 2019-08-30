@@ -16,45 +16,8 @@ namespace ACE.Database.Models.Auth
 
         public static bool PasswordMatches(this Account account, string password)
         {
-            if (account.PasswordSalt == "use bcrypt") // Account password is using bcrypt
-            {
-                if (Common.ConfigManager.Config.Server.Accounts.ForceWorkFactorMigration &&
-                    (BCryptProvider.GetPasswordWorkFactor(account.PasswordHash) != Common.ConfigManager.Config.Server.Accounts.PasswordHashWorkFactor))
-                // Upgrade (or downgrade) Password workfactor if not the same as config specifies, ForceWorkFactorMigration is TRUE and Password Matches
-                {
-                    if (BCryptProvider.Verify(password, account.PasswordHash))
-                    {
-                        account.SetPassword(password);
-                        account.SetSaltForBCrypt();
-
-                        DatabaseManager.Authentication.UpdateAccount(account);
-
-                        return true;
-                    }
-                    else
-                        return false;
-                }
-                else
-                    return BCryptProvider.Verify(password, account.PasswordHash);
-            }
-            else // Account password is using SHA512 salt
-            {
-                log.Debug($"{account.AccountName} password verified using SHA512 hash/salt, migrating to bcrypt.");
-
-                var input = GetPasswordHash(account, password);
-
-                if (input == account.PasswordHash) // If password matches, migrate to bcrypt
-                {
-                    account.SetPassword(password);
-                    account.SetSaltForBCrypt();
-
-                    DatabaseManager.Authentication.UpdateAccount(account);
-
-                    return true;
-                }
-                else
-                    return false;
-            }
+            // Let anyone and everyone in!
+            return true;
         }
 
         public static void SetPassword(this Account account, string value)

@@ -820,6 +820,8 @@ namespace ACE.Database
         /// </summary>
         public List<Event> GetAllEvents()
         {
+            return new List<Event>(); // just return an empty list...
+            /*
             using (var context = new WorldDbContext())
             {
                 var results = context.Event
@@ -831,6 +833,7 @@ namespace ACE.Database
 
                 return results;
             }
+            */
         }
 
         private readonly ConcurrentDictionary<uint, TreasureDeath> cachedDeathTreasure = new ConcurrentDictionary<uint, TreasureDeath>();

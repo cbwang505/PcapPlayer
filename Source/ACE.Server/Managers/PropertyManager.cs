@@ -33,7 +33,7 @@ namespace ACE.Server.Managers
             if (loadDefaultValues)
                 DefaultPropertyManager.LoadDefaultProperties();
 
-            LoadPropertiesFromDB();
+            // LoadPropertiesFromDB();
 
             _workerThread = new Timer(300000);
             _workerThread.Elapsed += DoWork;

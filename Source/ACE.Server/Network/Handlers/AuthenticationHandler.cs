@@ -181,8 +181,8 @@ namespace ACE.Server.Network.Handlers
             }
 
             // TODO: check for account bans
-
-            account.UpdateLastLogin(session.EndPoint.Address);
+            
+            //account.UpdateLastLogin(session.EndPoint.Address);
 
             session.SetAccount(account.AccountId, account.AccountName, (AccessLevel)account.AccessLevel);
             session.State = SessionState.AuthConnectResponse;

@@ -182,11 +182,14 @@ namespace ACE.Server.Network.Handlers
 
             string clientString = message.Payload.ReadString16L();
 
+            /*
+             * //DON"T CARE
             if (clientString != session.Account)
             {
                 session.SendCharacterError(CharacterError.EnterGameCharacterNotOwned);
                 return;
             }
+            */
 
             // Must load the PCapReader first!
             if (PCapReader.Records.Count == 0)

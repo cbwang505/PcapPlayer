@@ -91,6 +91,7 @@ namespace ACE.Database
         /// </summary>
         public Account GetAccountByName(string accountName)
         {
+            return new Account();
             using (var context = new AuthDbContext())
             {
                 return context.Account
