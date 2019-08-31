@@ -17,6 +17,8 @@ namespace ACE.PcapReader
 
         public static bool IsPcapPng;
 
+        public static int CurrentPcapRecordStart;
+
         public static void Initialize()
         {
             Records = new List<PacketRecord>();
@@ -25,6 +27,7 @@ namespace ACE.PcapReader
             StartTime = 0;
             PausedRecordIndex = 0;
             CharacterGUID = 0;
+            CurrentPcapRecordStart = 0;
         }
 
         // Set the start and end record positions in the pcap
@@ -173,6 +176,26 @@ namespace ACE.PcapReader
                 SetLoginInstance(1);
                 GetPcapDuration();
             }
+        }
+
+        /// <summary>
+        /// Sends the player to the next Teleport instance in the Pcap (if any!)
+        /// </summary>
+        public static bool DoTeleport()
+        {
+            // get the next teleport opcode in the pcap...
+
+            for (int i = CurrentPcapRecordStart; i < EndRecordIndex; i++)
+            {
+                // Search through pcap
+                if (Records[i].opcodes.Count > 0 && Records[i].opcodes[0] == PacketOpcode.Evt_Physics__PlayerTeleport_ID)
+                {
+                    CurrentPcapRecordStart = i - 1;
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private class FragNumComparer : IComparer<BlobFrag>

@@ -1,6 +1,6 @@
 # PCAP Player
 
-**PCAP Player is based on [ACEumlator](https://github.com/ACEmulator/ACE), a custom, completely from-scratch open source server implementation for Asheron's Call built on C#**
+**PCAP Player is based on [ACEmulator](https://github.com/ACEmulator/ACE), a custom, completely from-scratch open source server implementation for Asheron's Call built on C#**
  * Latest client supported.
  * Currently intended for developers, hobbyists, and content creators.
  * No technical support is provided. Use at our own risk.
