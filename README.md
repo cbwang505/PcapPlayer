@@ -1,6 +1,6 @@
 # PCAP Player
 
-**PCAP Player is based on [ACEmulator](https://github.com/ACEmulator/ACE), a custom, completely from-scratch open source server implementation for Asheron's Call built on C#**
+**PCAP Player is based on [ACEmulator](https://github.com/ACEmulator/ACE), a custom, completely from-scratch open source server implementation for Asheron's Call built on C#. It also borrows elements from [aclogview](https://github.com/ACEmulator/aclogview) to read and decode the PCAPs**
  * Latest client supported.
  * Currently intended for developers, hobbyists, and content creators.
  * No technical support is provided. Use at our own risk.
@@ -11,6 +11,13 @@
 - Asheron's Call was a registered trademark of Turbine, Inc. and WB Games Inc which has since expired.
 - Neither this project nor ACEmulator is associated or affiliated in any way with Turbine, Inc. or WB Games Inc.
 ***
+
+## Console Commands
+* `pcap-load <full-path-to-pcap-file>` - Select the PCAP file to load for playback.
+* `pcap-login <login-#>` - Specify a login instance for pcap playback.
+
+## In-Game Commands
+* `@teleport` - Advance the PCAP to the next teleport instance, if one exists.
 
 ## Recommended Tools
 * ACLogView [on Github](https://github.com/ACEmulator/aclogview) to view Pcaps.
