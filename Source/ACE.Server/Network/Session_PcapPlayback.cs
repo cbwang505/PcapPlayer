@@ -14,6 +14,7 @@ namespace ACE.Server.Network
         private uint PcapSeconds = 0;
         private ushort ForcePositionTimestamp = 0;
         private int TotalRecords = 0;
+        private int PausedRecord = 0; // Used to tell if we have advanced during a "pause" or not
 
         private float PercentComplete = 0;
 
@@ -37,6 +38,7 @@ namespace ACE.Server.Network
         {
             if (pcapTimer != null && pcapTimer.Enabled)
             {
+
                 pcapTimer.Stop();
                 pcapTimer.Enabled = false;
                 Console.WriteLine("Pcap Playback Has Paused.");
@@ -47,6 +49,13 @@ namespace ACE.Server.Network
         {
             if (pcapTimer != null && pcapTimer.Enabled == false)
             {
+                
+                if(PCapReader.CurrentPcapRecordStart != PausedRecord)
+                {
+                    // We need to adjust the PcapSeconds timer, as we have lept around in time
+                    PcapSeconds = PCapReader.Records[PCapReader.CurrentPcapRecordStart].tsSec - PCapReader.StartTime - 1;
+                }
+
                 pcapTimer.Enabled = true;
                 pcapTimer.Start();
                 Console.WriteLine("Pcap Playback Has Restarted.");
@@ -60,6 +69,8 @@ namespace ACE.Server.Network
                 pcapTimer.Stop();
                 pcapTimer.Dispose();
                 Console.WriteLine("Pcap Playback Has Stopped.");
+
+                PausedRecord = PCapReader.CurrentPcapRecordStart;
             }
         }
 

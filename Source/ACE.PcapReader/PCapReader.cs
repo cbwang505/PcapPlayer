@@ -190,6 +190,7 @@ namespace ACE.PcapReader
                 // Search through pcap
                 if (Records[i].opcodes.Count > 0 && Records[i].opcodes[0] == PacketOpcode.Evt_Physics__PlayerTeleport_ID)
                 {
+                    // 
                     CurrentPcapRecordStart = i - 1;
                     return true;
                 }

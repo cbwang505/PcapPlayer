@@ -97,7 +97,8 @@ namespace ACE.Server.Network.GameAction.Actions
             }
             else
             {
-                session.Player.HandleActionTalk(message);
+                // We only want to handle @commands, thank you very much!
+                // session.Player.HandleActionTalk(message);
             }
         }
     }

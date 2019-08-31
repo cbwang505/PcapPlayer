@@ -115,7 +115,7 @@ namespace ACE.Server.Network.Managers
                                     break;
                                 default:
                                     // Should not really ever see this in "spectator" mode. 
-                                    Console.WriteLine("Ignored message for " + (GameMessageOpcode)message.Opcode);
+                                    // Console.WriteLine("Ignored message for " + (GameMessageOpcode)message.Opcode);
                                     break;
                             }
                             
