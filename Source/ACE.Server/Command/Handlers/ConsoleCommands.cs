@@ -50,6 +50,7 @@ namespace ACE.Server.Command.Handlers
                 if (PCapReader.LoginInstances > 1)
                     Console.WriteLine("Please specify a login to use using the comamnd 'pcap-login <login-#>', where <login-#> is 1 to " + PCapReader.LoginInstances.ToString() + "\n");
                 Console.WriteLine("Login set to first instance.");
+                Console.WriteLine("Instance has " + PCapReader.TeleportInstances[1] + " teleports. Use @teleport in-game to advance to next, or @telport <index> to select a specific one.");
 
                 Console.WriteLine("StartRecordIndex: " + PCapReader.StartRecordIndex);
                 Console.WriteLine("EndRecordIndex: " + PCapReader.EndRecordIndex);
@@ -82,6 +83,7 @@ namespace ACE.Server.Command.Handlers
             {
                 PCapReader.SetLoginInstance(loginID);
                 Console.WriteLine("Login instance set. Pcap will play records " + PCapReader.StartRecordIndex.ToString() + " to " + PCapReader.EndRecordIndex.ToString());
+                Console.WriteLine("Instance has " + PCapReader.TeleportInstances[loginID] + " teleports. Use @teleport in-game to advance to next, or @telport <index> to select a specific one.");
                 PCapReader.GetPcapDuration();
             }
             else
@@ -90,5 +92,26 @@ namespace ACE.Server.Command.Handlers
             }
 
         }
+
+        [CommandHandler("teleport", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, 0, "Sends player to next teleport instance in Pcap", "")]
+        public static void HandleTeleport(Session session, params string[] parameters)
+        {
+            session.PausePcapPlayback();
+            int teleportID = 0;
+            if (parameters?.Length > 0)
+            {
+                // If we failed to get a valid int, reset to 0 (which means "next instance");
+                if(!int.TryParse(parameters[0], out teleportID))
+                    teleportID = 0;
+            }
+
+            bool teleportFound = PCapReader.DoTeleport(teleportID);
+            if (teleportFound)
+                Console.WriteLine("Advancing to next teleport session, entry " + PCapReader.CurrentPcapRecordStart);
+            else
+                Console.WriteLine("Sorry, there were no additional teleport events in this pcap.");
+            session.RestartPcapPlayback();
+        }
+
     }
 }

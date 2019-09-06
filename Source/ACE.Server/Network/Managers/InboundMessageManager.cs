@@ -97,8 +97,8 @@ namespace ACE.Server.Network.Managers
                     {
                         // It's possible that before this work is executed by WorldManager, and after it was enqueued here, the session.Player was set to null
                         // To avoid null reference exceptions, we make sure that the player is valid before the message handler is invoked.
-                        if (messageHandlerInfo.Attribute.State == Enum.SessionState.WorldConnected && session.Player == null)
-                            return;
+                        //if (messageHandlerInfo.Attribute.State == Enum.SessionState.WorldConnected)
+                        //    return;
 
                         try
                         {
@@ -107,6 +107,7 @@ namespace ACE.Server.Network.Managers
                                 case (uint)GameMessageOpcode.DDD_EndDDD:
                                 case (uint)GameMessageOpcode.CharacterEnterWorldRequest:
                                 case (uint)GameMessageOpcode.CharacterEnterWorld:
+                                case (uint)GameMessageOpcode.GameAction: // Handle this so we can capture the Talk GameAction
                                     messageHandlerInfo.Handler.Invoke(message, session);
                                     break;
                                 case (uint)GameMessageOpcode.CharacterLogOff:
@@ -114,7 +115,7 @@ namespace ACE.Server.Network.Managers
                                     break;
                                 default:
                                     // Should not really ever see this in "spectator" mode. 
-                                    Console.WriteLine("Ignored message for " + (GameMessageOpcode)message.Opcode);
+                                    // Console.WriteLine("Ignored message for " + (GameMessageOpcode)message.Opcode);
                                     break;
                             }
                             
@@ -144,12 +145,21 @@ namespace ACE.Server.Network.Managers
             {
                 // It's possible that before this work is executed by WorldManager, and after it was enqueued here, the session.Player was set to null
                 // To avoid null reference exceptions, we make sure that the player is valid before the message handler is invoked.
-                if (session.Player == null)
-                    return;
+                //if (session.Player == null)
+                //    return;
 
                 try
                 {
-                    actionHandlerInfo.Handler.Invoke(message, session);
+                    switch (opcode)
+                    {
+                        case GameActionType.Talk: // Handle any commands we might wire up
+                            actionHandlerInfo.Handler.Invoke(message, session);
+                            break;
+                        default:
+                            // nothing
+                            break;
+                    }
+                    
                 }
                 catch (Exception ex)
                 {

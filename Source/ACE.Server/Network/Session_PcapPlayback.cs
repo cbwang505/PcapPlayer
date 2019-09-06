@@ -12,9 +12,9 @@ namespace ACE.Server.Network
     {
         private System.Timers.Timer pcapTimer;
         private uint PcapSeconds = 0;
-        private int CurrentPcapRecordStart = 0;
         private ushort ForcePositionTimestamp = 0;
         private int TotalRecords = 0;
+        private int PausedRecord = 0; // Used to tell if we have advanced during a "pause" or not
 
         private float PercentComplete = 0;
 
@@ -23,7 +23,7 @@ namespace ACE.Server.Network
         /// </summary>
         public void InitPcapPlayback()
         {
-            CurrentPcapRecordStart = PCapReader.StartRecordIndex;
+            PCapReader.CurrentPcapRecordStart = PCapReader.StartRecordIndex;
 
             TotalRecords = PCapReader.EndRecordIndex - PCapReader.StartRecordIndex;
 
@@ -34,6 +34,34 @@ namespace ACE.Server.Network
             pcapTimer.Enabled = true;
         }
 
+        public void PausePcapPlayback()
+        {
+            if (pcapTimer != null && pcapTimer.Enabled)
+            {
+
+                pcapTimer.Stop();
+                pcapTimer.Enabled = false;
+                Console.WriteLine("Pcap Playback Has Paused.");
+            }
+        }
+
+        public void RestartPcapPlayback()
+        {
+            if (pcapTimer != null && pcapTimer.Enabled == false)
+            {
+                
+                if(PCapReader.CurrentPcapRecordStart != PausedRecord)
+                {
+                    // We need to adjust the PcapSeconds timer, as we have lept around in time
+                    PcapSeconds = PCapReader.Records[PCapReader.CurrentPcapRecordStart].tsSec - PCapReader.StartTime - 1;
+                }
+
+                pcapTimer.Enabled = true;
+                pcapTimer.Start();
+                Console.WriteLine("Pcap Playback Has Restarted.");
+            }
+        }
+
         public void StopPcapPlayback()
         {
             if (pcapTimer != null && pcapTimer.Enabled)
@@ -41,6 +69,8 @@ namespace ACE.Server.Network
                 pcapTimer.Stop();
                 pcapTimer.Dispose();
                 Console.WriteLine("Pcap Playback Has Stopped.");
+
+                PausedRecord = PCapReader.CurrentPcapRecordStart;
             }
         }
 
@@ -49,14 +79,14 @@ namespace ACE.Server.Network
         /// </summary>
         public void PcapLoginComplete()
         {
-            CurrentPcapRecordStart = PCapReader.PausedRecordIndex;
+            PCapReader.CurrentPcapRecordStart = PCapReader.PausedRecordIndex;
         }
 
         private void OnPcapTimer(Object source, ElapsedEventArgs e)
         {
             // Console.WriteLine("The Elapsed event of the pcapTimer was raised at {0:HH:mm:ss.fff}", e.SignalTime);
             uint myTimer = PCapReader.StartTime + PcapSeconds;
-            for (var i = CurrentPcapRecordStart; i < PCapReader.EndRecordIndex; i++)
+            for (var i = PCapReader.CurrentPcapRecordStart; i < PCapReader.EndRecordIndex; i++)
             {
                 // Check if the record is not a "send" (client TO server)
                 if (PCapReader.Records[i].isSend == false && PCapReader.Records[i].tsSec == myTimer)
@@ -87,17 +117,17 @@ namespace ACE.Server.Network
                     }
 
                     SendMessage(newMessage);
-                    CurrentPcapRecordStart = i;
+                    PCapReader.CurrentPcapRecordStart = i;
                 }
             }
             PcapSeconds++;
 
             // Write out how far along we are...
-            var perc = (float)CurrentPcapRecordStart / (float)TotalRecords * 100f;
+            var perc = (float)PCapReader.CurrentPcapRecordStart / (float)TotalRecords * 100f;
             string percentDone = perc.ToString("0.0");
             if (percentDone != PercentComplete.ToString("0.0"))
             {
-                Console.WriteLine($"Processed record {CurrentPcapRecordStart} - {percentDone}% complete.");
+                Console.WriteLine($"Processed record {PCapReader.CurrentPcapRecordStart} - {percentDone}% complete.");
                 PercentComplete = perc;
             }
 

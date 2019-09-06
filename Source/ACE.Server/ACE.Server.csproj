@@ -11,6 +11,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Command\Handlers\Processors\**" />
+    <EmbeddedResource Remove="Command\Handlers\Processors\**" />
+    <None Remove="Command\Handlers\Processors\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Remove="Config.json" />
     <None Remove="starterGear.json" />
   </ItemGroup>
@@ -47,10 +53,6 @@
     <None Update="start_server.bat">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Command\Handlers\Processors\" />
   </ItemGroup>
 
   <Target Name="PreBuild" BeforeTargets="PreBuildEvent">

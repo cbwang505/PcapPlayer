@@ -12,10 +12,13 @@ namespace ACE.PcapReader
         public static int EndRecordIndex;
         public static int PausedRecordIndex; // Record index of the LoginCompleteNotification from the client
         public static int LoginInstances;
+        public static List<int> TeleportInstances; // id correlates to the LoginInstance, and is the number of teleports in the instance
         public static uint StartTime;
         public static uint CharacterGUID;
 
         public static bool IsPcapPng;
+
+        public static int CurrentPcapRecordStart;
 
         public static void Initialize()
         {
@@ -25,6 +28,8 @@ namespace ACE.PcapReader
             StartTime = 0;
             PausedRecordIndex = 0;
             CharacterGUID = 0;
+            CurrentPcapRecordStart = 0;
+            TeleportInstances = new List<int>();
         }
 
         // Set the start and end record positions in the pcap
@@ -96,13 +101,22 @@ namespace ACE.PcapReader
             }
 
             LoginInstances = 0;
+            TeleportInstances.Clear();
+            int Teleports = 0;
             for (int i = 0; i < Records.Count; i++)
             {
                 if (Records[i].opcodes.Count > 0 && Records[i].opcodes[0] == PacketOpcode.Evt_Character__EnterGame_ServerReady_ID)
                 {
                     LoginInstances++;
+                    TeleportInstances.Add(Teleports);
+                    Teleports = 0;
+                }
+                else if (Records[i].opcodes.Count > 0 && Records[i].opcodes[0] == PacketOpcode.Evt_Physics__PlayerTeleport_ID)
+                {
+                    Teleports++;
                 }
             }
+            TeleportInstances.Add(Teleports); // This is the end teleport count
         }
 
         public static void GetPcapDuration()
@@ -173,6 +187,43 @@ namespace ACE.PcapReader
                 SetLoginInstance(1);
                 GetPcapDuration();
             }
+        }
+
+        /// <summary>
+        /// Sends the player to the next Teleport instance in the Pcap (if any!)
+        /// </summary>
+        public static bool DoTeleport(int teleportID = 0)
+        {
+            int startIndex = CurrentPcapRecordStart;
+            if(teleportID > 0)
+            {
+                startIndex = StartRecordIndex;
+            }
+
+            // get the next teleport opcode in the pcap...
+            int teleportsFound = 0;
+            for (int i = startIndex; i < EndRecordIndex; i++)
+            {
+                // Search through pcap
+                if (Records[i].opcodes.Count > 0 && Records[i].opcodes[0] == PacketOpcode.Evt_Physics__PlayerTeleport_ID)
+                {
+                    teleportsFound++;
+                    // Check for the instance if we have set a specific one...
+                    if (teleportID > 0 && teleportID == teleportsFound)
+                    {
+                        CurrentPcapRecordStart = i - 1;
+                        return true;
+                    }
+                    else
+                    {
+                        // We're just loading the next teleport
+                        CurrentPcapRecordStart = i - 1;
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         private class FragNumComparer : IComparer<BlobFrag>
