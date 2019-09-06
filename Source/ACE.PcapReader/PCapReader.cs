@@ -223,7 +223,11 @@ namespace ACE.PcapReader
                         IsPcapPng = true;
                     }
 
-                    allRecords;
+                    // Insert these new records before the loaded pcap, so we have our pseudo-login
+                    var mergeRecords = new List<PacketRecord>(allRecords.Count + Records.Count);
+                    mergeRecords.AddRange(allRecords);
+                    mergeRecords.AddRange(Records);
+                    Records = mergeRecords;
                 }
             }
         }
