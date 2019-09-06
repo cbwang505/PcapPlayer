@@ -15,6 +15,7 @@ namespace ACE.PcapReader
         public static List<int> TeleportInstances; // id correlates to the LoginInstance, and is the number of teleports in the instance
         public static uint StartTime;
         public static uint CharacterGUID;
+        public static bool HasLoginEvent;
 
         public static bool IsPcapPng;
 
@@ -29,6 +30,7 @@ namespace ACE.PcapReader
             PausedRecordIndex = 0;
             CharacterGUID = 0;
             CurrentPcapRecordStart = 0;
+            HasLoginEvent = false;
             TeleportInstances = new List<int>();
         }
 
@@ -39,7 +41,13 @@ namespace ACE.PcapReader
             EndRecordIndex = 0;
 
             if (LoginInstances == 0)
+            {
+                HasLoginEvent = false;
+                EndRecordIndex = Records.Count - 1;
                 return;
+            }
+
+            HasLoginEvent = true;
 
             // Set to one if they specify an instance that does not exist...
             if (instanceID > LoginInstances)
@@ -182,10 +190,41 @@ namespace ACE.PcapReader
                 }
             }
             SetLoginInstanceCount();
-            if (LoginInstances > 0)
+
+            SetLoginInstance(1);
+            GetPcapDuration();
+        }
+
+        /// <summary>
+        /// Load the basic-login.pcap. We will insert this before the pcap we are attempting to play.
+        /// </summary>
+        public static void LoadLoginPcap()
+        {
+            string fileName = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "basic-login.pcap");
+
+            using (FileStream fileStream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             {
-                SetLoginInstance(1);
-                GetPcapDuration();
+                using (BinaryReader binaryReader = new BinaryReader(fileStream))
+                {
+                    bool abort = false;
+                    uint magicNumber = binaryReader.ReadUInt32();
+
+                    binaryReader.BaseStream.Position = 0;
+
+                    List<PacketRecord> allRecords;
+                    if (magicNumber == 0xA1B2C3D4 || magicNumber == 0xD4C3B2A1)
+                    {
+                        allRecords = loadPcapPacketRecords(binaryReader, true, ref abort);
+                        IsPcapPng = false;
+                    }
+                    else
+                    {
+                        allRecords = loadPcapngPacketRecords(binaryReader, true, ref abort);
+                        IsPcapPng = true;
+                    }
+
+                    allRecords;
+                }
             }
         }
 

@@ -57,7 +57,8 @@ namespace ACE.Server.Command.Handlers
             }
             else
             {
-                Console.WriteLine("\nNo login events detected. We cannot play back this pcap at this time, sorry.\n");
+                Console.WriteLine("\nNo login events detected. We will attempt to join this pcap already in progress.\n");
+                Console.WriteLine("Instance has " + PCapReader.TeleportInstances[0] + " teleports. Use @teleport in-game to advance to next, or @telport <index> to select a specific one.");
             }
 
             Console.WriteLine("");
