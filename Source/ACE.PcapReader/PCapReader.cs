@@ -1,11 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 
 namespace ACE.PcapReader
 {
-    public static class PCapReader
+    public static partial class PCapReader
     {
         public static List<PacketRecord> Records;
         public static int StartRecordIndex;
@@ -15,6 +16,17 @@ namespace ACE.PcapReader
         public static List<int> TeleportInstances; // id correlates to the LoginInstance, and is the number of teleports in the instance
         public static uint StartTime;
         public static uint CharacterGUID;
+        public static bool HasLoginEvent;
+
+        // Player's starting position
+        public static uint PlayerObjcell;
+        public static float PlayerX;
+        public static float PlayerY;
+        public static float PlayerZ;
+        public static float PlayerQW = 1;
+        public static float PlayerQX = 0;
+        public static float PlayerQY = 0;
+        public static float PlayerQZ = 0;
 
         public static bool IsPcapPng;
 
@@ -29,6 +41,7 @@ namespace ACE.PcapReader
             PausedRecordIndex = 0;
             CharacterGUID = 0;
             CurrentPcapRecordStart = 0;
+            HasLoginEvent = false;
             TeleportInstances = new List<int>();
         }
 
@@ -39,7 +52,16 @@ namespace ACE.PcapReader
             EndRecordIndex = 0;
 
             if (LoginInstances == 0)
+            {
+                HasLoginEvent = false;
+                EndRecordIndex = Records.Count - 1;
+
+                // Merge with the "Base Login" pcap.
+                LoadLoginPcap();
                 return;
+            }
+
+            HasLoginEvent = true;
 
             // Set to one if they specify an instance that does not exist...
             if (instanceID > LoginInstances)
@@ -182,11 +204,9 @@ namespace ACE.PcapReader
                 }
             }
             SetLoginInstanceCount();
-            if (LoginInstances > 0)
-            {
-                SetLoginInstance(1);
-                GetPcapDuration();
-            }
+
+            SetLoginInstance(1);
+            GetPcapDuration();
         }
 
         /// <summary>

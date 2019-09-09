@@ -38,7 +38,6 @@ namespace ACE.Server.Network
         {
             if (pcapTimer != null && pcapTimer.Enabled)
             {
-
                 pcapTimer.Stop();
                 pcapTimer.Enabled = false;
                 Console.WriteLine("Pcap Playback Has Paused.");
