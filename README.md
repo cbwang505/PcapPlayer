@@ -36,7 +36,7 @@ The following sections (Code, and Starting the Server) contain all the required 
 ### Starting the Server
 1. Start the server by running the batch file located in the netcoreapp2.2 output directory: `start_server.bat`
    * ex. ACE\Source\ACE.Server\bin\x64\Debug\netcoreapp2.2\start_server.bat
-2. Load the PCAP into the console - `pcap-load <full-path-to-pcap-file>`. The PCAP must have a login event to properly function. The console will notify you if there was not one found. In the event of multiple login events in the PCAP, use `pcap-login <login-#>` to specify the index of the login to use from 1 to TOTAL_LOGIN_EVENTS.
+2. Load the PCAP into the console - `pcap-load <full-path-to-pcap-file>`. The Pcap Player works better if the PCAP has a login event, but will attempt to join in-progress using a base login event. The console will notify you if there was np login event found. In the event of multiple login events in the PCAP, use `pcap-login <login-#>` to specify the index of the login to use from 1 to TOTAL_LOGIN_EVENTS.
 3. Launch ACClient directly with this command: `acclient.exe -a testaccount -v testpassword -h 127.0.0.1:9000`
 
 
