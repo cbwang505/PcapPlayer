@@ -98,12 +98,12 @@ namespace ACE.Server.Command.Handlers
         public static void HandleTeleport(Session session, params string[] parameters)
         {
             session.PausePcapPlayback();
-            int teleportID = 0;
+            int? teleportID = null;
             if (parameters?.Length > 0)
             {
-                // If we failed to get a valid int, reset to 0 (which means "next instance");
-                if(!int.TryParse(parameters[0], out teleportID))
-                    teleportID = 0;
+                // If we fail to get a valid int, we will continue with null (which means "next instance");
+                if (int.TryParse(parameters[0], out int teleportIndex))
+                    teleportID = teleportIndex;
             }
 
             bool teleportFound = PCapReader.DoTeleport(teleportID);
@@ -114,5 +114,24 @@ namespace ACE.Server.Command.Handlers
             session.RestartPcapPlayback();
         }
 
+        [CommandHandler("teleportlist", AccessLevel.Player, CommandHandlerFlag.ConsoleInvoke, 0, "Lists the pcap line numbers of each teleport instance.", "")]
+        public static void HandleTeleportList(Session session, params string[] parameters)
+        {
+            if (parameters?.Length > 0)
+            {
+                Console.WriteLine("This command doesn't take parameters.");
+            }
+            if (PCapReader.TeleportIndexes.Count > 0)
+            {
+                for (int i = 0; i < PCapReader.TeleportIndexes.Count; i++)
+                {
+                    Console.WriteLine($"{i}: {PCapReader.TeleportIndexes[i]}");
+                }
+            }
+            else
+            {
+                Console.WriteLine("Sorry, there are not teleport events in this pcap.");
+            }
+        }
     }
 }

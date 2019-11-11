@@ -14,6 +14,7 @@ namespace ACE.PcapReader
         public static int PausedRecordIndex; // Record index of the LoginCompleteNotification from the client
         public static int LoginInstances;
         public static List<int> TeleportInstances; // id correlates to the LoginInstance, and is the number of teleports in the instance
+        public static List<int> TeleportIndexes; // List of line numbers of pcap player teleport messages 
         public static uint StartTime;
         public static uint CharacterGUID;
         public static bool HasLoginEvent;
@@ -43,6 +44,7 @@ namespace ACE.PcapReader
             CurrentPcapRecordStart = 0;
             HasLoginEvent = false;
             TeleportInstances = new List<int>();
+            TeleportIndexes = new List<int>();
         }
 
         // Set the start and end record positions in the pcap
@@ -136,6 +138,7 @@ namespace ACE.PcapReader
                 else if (Records[i].opcodes.Count > 0 && Records[i].opcodes[0] == PacketOpcode.Evt_Physics__PlayerTeleport_ID)
                 {
                     Teleports++;
+                    TeleportIndexes.Add(i);
                 }
             }
             TeleportInstances.Add(Teleports); // This is the end teleport count
@@ -212,35 +215,28 @@ namespace ACE.PcapReader
         /// <summary>
         /// Sends the player to the next Teleport instance in the Pcap (if any!)
         /// </summary>
-        public static bool DoTeleport(int teleportID = 0)
+        public static bool DoTeleport(int? teleportID)
         {
-            int startIndex = CurrentPcapRecordStart;
-            if(teleportID > 0)
+            // Try to load the next teleport if no index was passed
+            if (teleportID == null)
             {
-                startIndex = StartRecordIndex;
+                try
+                {
+                    var newIndex = TeleportIndexes.First(index => index >= CurrentPcapRecordStart);
+                    CurrentPcapRecordStart = newIndex - 1;
+                    return true;
+                }
+                catch (Exception e)
+                {
+                    return false;
+                }
             }
 
-            // get the next teleport opcode in the pcap...
-            int teleportsFound = 0;
-            for (int i = startIndex; i < EndRecordIndex; i++)
+            // Go to a specific teleport index
+            if (teleportID >= 0 && teleportID < TeleportIndexes.Count)
             {
-                // Search through pcap
-                if (Records[i].opcodes.Count > 0 && Records[i].opcodes[0] == PacketOpcode.Evt_Physics__PlayerTeleport_ID)
-                {
-                    teleportsFound++;
-                    // Check for the instance if we have set a specific one...
-                    if (teleportID > 0 && teleportID == teleportsFound)
-                    {
-                        CurrentPcapRecordStart = i - 1;
-                        return true;
-                    }
-                    else
-                    {
-                        // We're just loading the next teleport
-                        CurrentPcapRecordStart = i - 1;
-                        return true;
-                    }
-                }
+                CurrentPcapRecordStart = TeleportIndexes[(int)teleportID] - 1;
+                return true;
             }
 
             return false;
