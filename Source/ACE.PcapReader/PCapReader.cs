@@ -12,8 +12,15 @@ namespace ACE.PcapReader
         public static int StartRecordIndex;
         public static int EndRecordIndex;
         public static int PausedRecordIndex; // Record index of the LoginCompleteNotification from the client
+
+        // Note that throughout the project Index will mean zero-based and Instance will mean one-based
         public static int LoginInstances;
-        public static List<int> TeleportInstances; // id correlates to the LoginInstance, and is the number of teleports in the instance
+        public static List<int> LoginIndexes; // List of line numbers of pcap login instances
+        public static List<PcapMarker> PcapMarkers; // List of login and teleport events
+        public static int CurrentLoginInstance;
+        // Key is login instance (one-based), Value is a list of teleport line numbers
+        public static Dictionary<int, List<int>> TeleportIndexes; 
+
         public static uint StartTime;
         public static uint CharacterGUID;
         public static bool HasLoginEvent;
@@ -42,12 +49,22 @@ namespace ACE.PcapReader
             CharacterGUID = 0;
             CurrentPcapRecordStart = 0;
             HasLoginEvent = false;
-            TeleportInstances = new List<int>();
+            TeleportIndexes = new Dictionary<int, List<int>>();
+            LoginIndexes = new List<int>();
+            PcapMarkers = new List<PcapMarker>();
+        }
+
+        public static void Reset()
+        {
+            TeleportIndexes.Clear();
+            LoginIndexes.Clear();
+            PcapMarkers.Clear();
         }
 
         // Set the start and end record positions in the pcap
         public static void SetLoginInstance(int instanceID)
         {
+            CurrentLoginInstance = 0;
             StartRecordIndex = 0;
             EndRecordIndex = 0;
 
@@ -74,20 +91,22 @@ namespace ACE.PcapReader
                 if (Records[i].opcodes.Count > 0 && Records[i].opcodes[0] == PacketOpcode.CHARACTER_ENTER_GAME_EVENT)
                 {
                     loginsFound++;
-                    if (loginsFound == instanceID) {
+                    if (loginsFound == instanceID)
+                    {
+                        CurrentLoginInstance = instanceID;
                         StartRecordIndex = i;
                         StartTime = Records[i].tsSec;
 
                         // Get the Character GUID from the login event... This is hacky, but it works!
                         string cGUID = "0x" +
-                            Records[i].data[7].ToString("X2") +
-                            Records[i].data[6].ToString("X2") +
-                            Records[i].data[5].ToString("X2") +
-                            Records[i].data[4].ToString("X2");
+                                       Records[i].data[7].ToString("X2") +
+                                       Records[i].data[6].ToString("X2") +
+                                       Records[i].data[5].ToString("X2") +
+                                       Records[i].data[4].ToString("X2");
                         CharacterGUID = Convert.ToUInt32(cGUID, 16);
 
                         // If there's only one login, or we're on the last, the log plays to the end...
-                        if(LoginInstances == 1 || instanceID == LoginInstances)
+                        if (LoginInstances == 1 || instanceID == LoginInstances)
                         {
                             EndRecordIndex = Records.Count;
                             return;
@@ -95,19 +114,22 @@ namespace ACE.PcapReader
                     }
                 }
 
-                if (loginsFound == (instanceID + 1) && Records[i].opcodes[0] == PacketOpcode.Evt_Character__LoginCompleteNotification_ID) {
+                if (loginsFound == (instanceID + 1) &&
+                    Records[i].opcodes[0] == PacketOpcode.Evt_Character__LoginCompleteNotification_ID)
+                {
                     PausedRecordIndex = i;
                 }
 
                 // Time to try to find the EndRecordIndex
-                if (Records[i].opcodes.Count > 0 && Records[i].opcodes[0] == PacketOpcode.CHARACTER_EXIT_GAME_EVENT && loginsFound == (instanceID + 1))
+                if (Records[i].opcodes.Count > 0 && Records[i].opcodes[0] == PacketOpcode.CHARACTER_EXIT_GAME_EVENT &&
+                    loginsFound == (instanceID + 1))
                 {
                     EndRecordIndex = i;
                     return;
                 }
             }
 
-            if(EndRecordIndex == 0)
+            if (EndRecordIndex == 0)
             {
                 EndRecordIndex = Records.Count;
             }
@@ -116,29 +138,35 @@ namespace ACE.PcapReader
         // Set the number of logins in this pcap
         private static void SetLoginInstanceCount()
         {
-            if(Records.Count == 0)
+            if (Records.Count == 0)
             {
                 LoginInstances = 0;
                 return;
             }
 
             LoginInstances = 0;
-            TeleportInstances.Clear();
-            int Teleports = 0;
+            int teleports = 0;
             for (int i = 0; i < Records.Count; i++)
             {
-                if (Records[i].opcodes.Count > 0 && Records[i].opcodes[0] == PacketOpcode.Evt_Character__EnterGame_ServerReady_ID)
+                if (Records[i].opcodes.Count > 0 &&
+                    Records[i].opcodes[0] == PacketOpcode.Evt_Character__EnterGame_ServerReady_ID)
                 {
                     LoginInstances++;
-                    TeleportInstances.Add(Teleports);
-                    Teleports = 0;
+                    LoginIndexes.Add(i);
+                    PcapMarkers.Add(new PcapMarker(MarkerType.Login, i, LoginInstances));
+                    teleports = 0;
                 }
-                else if (Records[i].opcodes.Count > 0 && Records[i].opcodes[0] == PacketOpcode.Evt_Physics__PlayerTeleport_ID)
+                else if (Records[i].opcodes.Count > 0 &&
+                         Records[i].opcodes[0] == PacketOpcode.Evt_Physics__PlayerTeleport_ID)
                 {
-                    Teleports++;
+                    teleports++;
+                    if (!TeleportIndexes.ContainsKey(LoginInstances))
+                        TeleportIndexes.Add(LoginInstances, new List<int> {i});
+                    else
+                        TeleportIndexes[LoginInstances].Add(i);
+                    PcapMarkers.Add(new PcapMarker(MarkerType.Teleport, i, LoginInstances));
                 }
             }
-            TeleportInstances.Add(Teleports); // This is the end teleport count
         }
 
         public static void GetPcapDuration()
@@ -148,7 +176,7 @@ namespace ACE.PcapReader
 
             TimeSpan duration = endRecordTime - startRecordTime;
             string elapsedTime = String.Format("{0:00} hours, {1:00} minutes, {2:00} seconds",
-                   duration.Hours, duration.Minutes, duration.Seconds);
+                duration.Hours, duration.Minutes, duration.Seconds);
             Console.WriteLine("Pcap duration is " + elapsedTime);
         }
 
@@ -173,7 +201,8 @@ namespace ACE.PcapReader
 
         public static void LoadPcap(string fileName, bool asMessages, ref bool abort)
         {
-            using (FileStream fileStream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            using (FileStream fileStream =
+                new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             {
                 using (BinaryReader binaryReader = new BinaryReader(fileStream))
                 {
@@ -192,6 +221,7 @@ namespace ACE.PcapReader
                         allRecords = loadPcapngPacketRecords(binaryReader, asMessages, ref abort);
                         IsPcapPng = true;
                     }
+
                     /*
                     for(int i = 0; i < allRecords.Count; i++)
                     {
@@ -203,6 +233,8 @@ namespace ACE.PcapReader
                     Records = allRecords;
                 }
             }
+
+            Reset();
             SetLoginInstanceCount();
 
             SetLoginInstance(1);
@@ -212,35 +244,33 @@ namespace ACE.PcapReader
         /// <summary>
         /// Sends the player to the next Teleport instance in the Pcap (if any!)
         /// </summary>
-        public static bool DoTeleport(int teleportID = 0)
+        public static bool DoTeleport(int? teleportID)
         {
-            int startIndex = CurrentPcapRecordStart;
-            if(teleportID > 0)
+            // Try to load the next teleport if no index was passed
+            if (teleportID == null)
             {
-                startIndex = StartRecordIndex;
+                try
+                {
+                    var newIndex = TeleportIndexes[CurrentLoginInstance].First(index => (index >= CurrentPcapRecordStart));
+                    CurrentPcapRecordStart = newIndex - 1;
+                    return true;
+                }
+                catch (Exception e)
+                {
+                    return false;
+                }
             }
 
-            // get the next teleport opcode in the pcap...
-            int teleportsFound = 0;
-            for (int i = startIndex; i < EndRecordIndex; i++)
+            // Decrement because user should supply a one-based index
+            teleportID--;
+            if (teleportID < 0)
+                return false;
+
+            // Go to a specific teleport index
+            if (teleportID < TeleportIndexes[CurrentLoginInstance].Count)
             {
-                // Search through pcap
-                if (Records[i].opcodes.Count > 0 && Records[i].opcodes[0] == PacketOpcode.Evt_Physics__PlayerTeleport_ID)
-                {
-                    teleportsFound++;
-                    // Check for the instance if we have set a specific one...
-                    if (teleportID > 0 && teleportID == teleportsFound)
-                    {
-                        CurrentPcapRecordStart = i - 1;
-                        return true;
-                    }
-                    else
-                    {
-                        // We're just loading the next teleport
-                        CurrentPcapRecordStart = i - 1;
-                        return true;
-                    }
-                }
+                CurrentPcapRecordStart = TeleportIndexes[CurrentLoginInstance][(int) teleportID] - 1;
+                return true;
             }
 
             return false;
@@ -266,7 +296,8 @@ namespace ACE.PcapReader
             // Make sure all fragments are present
             if (record.frags.Count < record.frags[0].memberHeader_.numFrags
                 || record.frags[0].memberHeader_.blobNum != 0
-                || record.frags[record.frags.Count - 1].memberHeader_.blobNum != record.frags[0].memberHeader_.numFrags - 1)
+                || record.frags[record.frags.Count - 1].memberHeader_.blobNum !=
+                record.frags[0].memberHeader_.numFrags - 1)
             {
                 return false;
             }
@@ -306,14 +337,16 @@ namespace ACE.PcapReader
         {
             if (binaryReader.BaseStream.Length - binaryReader.BaseStream.Position < 16)
             {
-                throw new InvalidDataException("Stream cut short (packet " + curPacket + "), stopping read: " + (binaryReader.BaseStream.Length - binaryReader.BaseStream.Position));
+                throw new InvalidDataException("Stream cut short (packet " + curPacket + "), stopping read: " +
+                                               (binaryReader.BaseStream.Length - binaryReader.BaseStream.Position));
             }
 
             PcapRecordHeader recordHeader = PcapRecordHeader.read(binaryReader);
 
             if (recordHeader.inclLen > 50000)
             {
-                throw new InvalidDataException("Enormous packet (packet " + curPacket + "), stopping read: " + recordHeader.inclLen);
+                throw new InvalidDataException("Enormous packet (packet " + curPacket + "), stopping read: " +
+                                               recordHeader.inclLen);
             }
 
             // Make sure there's enough room for an ethernet header
@@ -326,7 +359,8 @@ namespace ACE.PcapReader
             return recordHeader;
         }
 
-        private static List<PacketRecord> loadPcapPacketRecords(BinaryReader binaryReader, bool asMessages, ref bool abort)
+        private static List<PacketRecord> loadPcapPacketRecords(BinaryReader binaryReader, bool asMessages,
+            ref bool abort)
         {
             List<PacketRecord> results = new List<PacketRecord>();
 
@@ -363,12 +397,14 @@ namespace ACE.PcapReader
                 {
                     if (asMessages)
                     {
-                        if (!readMessageData(binaryReader, recordHeader.inclLen, recordHeader.tsSec, recordHeader.tsUsec, results, incompletePacketMap))
+                        if (!readMessageData(binaryReader, recordHeader.inclLen, recordHeader.tsSec,
+                            recordHeader.tsUsec, results, incompletePacketMap))
                             break;
                     }
                     else
                     {
-                        var packetRecord = readPacketData(binaryReader, recordHeader.inclLen, recordHeader.tsSec, recordHeader.tsUsec, curPacket);
+                        var packetRecord = readPacketData(binaryReader, recordHeader.inclLen, recordHeader.tsSec,
+                            recordHeader.tsUsec, curPacket);
 
                         if (packetRecord == null)
                             break;
@@ -380,7 +416,8 @@ namespace ACE.PcapReader
                 }
                 catch (Exception)
                 {
-                    binaryReader.BaseStream.Position += recordHeader.inclLen - (binaryReader.BaseStream.Position - packetStartPos);
+                    binaryReader.BaseStream.Position +=
+                        recordHeader.inclLen - (binaryReader.BaseStream.Position - packetStartPos);
                 }
             }
 
@@ -391,7 +428,8 @@ namespace ACE.PcapReader
         {
             if (binaryReader.BaseStream.Length - binaryReader.BaseStream.Position < 8)
             {
-                throw new InvalidDataException("Stream cut short (packet " + curPacket + "), stopping read: " + (binaryReader.BaseStream.Length - binaryReader.BaseStream.Position));
+                throw new InvalidDataException("Stream cut short (packet " + curPacket + "), stopping read: " +
+                                               (binaryReader.BaseStream.Length - binaryReader.BaseStream.Position));
             }
 
             long blockStartPos = binaryReader.BaseStream.Position;
@@ -400,20 +438,23 @@ namespace ACE.PcapReader
 
             if (blockHeader.capturedLen > 50000)
             {
-                throw new InvalidDataException("Enormous packet (packet " + curPacket + "), stopping read: " + blockHeader.capturedLen);
+                throw new InvalidDataException("Enormous packet (packet " + curPacket + "), stopping read: " +
+                                               blockHeader.capturedLen);
             }
 
             // Make sure there's enough room for an ethernet header
             if (blockHeader.capturedLen < 14)
             {
-                binaryReader.BaseStream.Position += blockHeader.blockTotalLength - (binaryReader.BaseStream.Position - blockStartPos);
+                binaryReader.BaseStream.Position +=
+                    blockHeader.blockTotalLength - (binaryReader.BaseStream.Position - blockStartPos);
                 return null;
             }
 
             return blockHeader;
         }
 
-        private static List<PacketRecord> loadPcapngPacketRecords(BinaryReader binaryReader, bool asMessages, ref bool abort)
+        private static List<PacketRecord> loadPcapngPacketRecords(BinaryReader binaryReader, bool asMessages,
+            ref bool abort)
         {
             List<PacketRecord> results = new List<PacketRecord>();
 
@@ -449,12 +490,14 @@ namespace ACE.PcapReader
                 {
                     if (asMessages)
                     {
-                        if (!readMessageData(binaryReader, blockHeader.capturedLen, blockHeader.tsLow, blockHeader.tsHigh, results, incompletePacketMap))
+                        if (!readMessageData(binaryReader, blockHeader.capturedLen, blockHeader.tsLow,
+                            blockHeader.tsHigh, results, incompletePacketMap))
                             break;
                     }
                     else
                     {
-                        var packetRecord = readPacketData(binaryReader, blockHeader.capturedLen, blockHeader.tsLow, blockHeader.tsHigh, curPacket);
+                        var packetRecord = readPacketData(binaryReader, blockHeader.capturedLen, blockHeader.tsLow,
+                            blockHeader.tsHigh, curPacket);
 
                         if (packetRecord == null)
                             break;
@@ -466,10 +509,12 @@ namespace ACE.PcapReader
                 }
                 catch (Exception)
                 {
-                    binaryReader.BaseStream.Position += blockHeader.capturedLen - (binaryReader.BaseStream.Position - packetStartPos);
+                    binaryReader.BaseStream.Position +=
+                        blockHeader.capturedLen - (binaryReader.BaseStream.Position - packetStartPos);
                 }
 
-                binaryReader.BaseStream.Position += blockHeader.blockTotalLength - (binaryReader.BaseStream.Position - blockStartPos);
+                binaryReader.BaseStream.Position +=
+                    blockHeader.blockTotalLength - (binaryReader.BaseStream.Position - blockStartPos);
             }
 
             return results;
@@ -507,7 +552,8 @@ namespace ACE.PcapReader
             return isSend;
         }
 
-        private static PacketRecord readPacketData(BinaryReader binaryReader, long len, uint ts1, uint ts2, int curPacket)
+        private static PacketRecord readPacketData(BinaryReader binaryReader, long len, uint ts1, uint ts2,
+            int curPacket)
         {
             // Begin reading headers
             long packetStartPos = binaryReader.BaseStream.Position;
@@ -520,11 +566,12 @@ namespace ACE.PcapReader
             StringBuilder packetHeadersStr = new StringBuilder();
             StringBuilder packetTypeStr = new StringBuilder();
 
-            PacketRecord packet = new PacketRecord(){
+            PacketRecord packet = new PacketRecord()
+            {
                 index = curPacket,
                 isSend = isSend,
                 extraInfo = "",
-                data = binaryReader.ReadBytes((int)(len - headersSize))
+                data = binaryReader.ReadBytes((int) (len - headersSize))
             };
 
             if (IsPcapPng)
@@ -594,13 +641,15 @@ namespace ACE.PcapReader
                     packet.extraInfo += "EXCEPTION: " + e.Message + " " + e.StackTrace;
                 }
             }
+
             packet.packetHeadersStr = packetHeadersStr.ToString();
             packet.packetTypeStr = packetTypeStr.ToString();
 
             return packet;
         }
 
-        private static bool readMessageData(BinaryReader binaryReader, long len, uint ts1, uint ts2, List<PacketRecord> results, Dictionary<ulong, PacketRecord> incompletePacketMap)
+        private static bool readMessageData(BinaryReader binaryReader, long len, uint ts1, uint ts2,
+            List<PacketRecord> results, Dictionary<ulong, PacketRecord> incompletePacketMap)
         {
             // Begin reading headers
             long packetStartPos = binaryReader.BaseStream.Position;
@@ -614,7 +663,7 @@ namespace ACE.PcapReader
             StringBuilder packetTypeStr = new StringBuilder();
 
             PacketRecord packet = null;
-            byte[] packetData = binaryReader.ReadBytes((int)(len - headersSize));
+            byte[] packetData = binaryReader.ReadBytes((int) (len - headersSize));
             using (BinaryReader packetReader = new BinaryReader(new MemoryStream(packetData)))
             {
                 try
@@ -690,6 +739,7 @@ namespace ACE.PcapReader
                     packet.extraInfo += "EXCEPTION: " + e.Message + " " + e.StackTrace;
                 }
             }
+
             return true;
         }
 
@@ -778,7 +828,7 @@ namespace ACE.PcapReader
             {
                 CLogonHeader.HandshakeWireData handshakeData = CLogonHeader.HandshakeWireData.read(packetReader);
                 /*byte[] authData = */
-                packetReader.ReadBytes((int)handshakeData.cbAuthData);
+                packetReader.ReadBytes((int) handshakeData.cbAuthData);
                 if (packetHeadersStr.Length != 0)
                     packetHeadersStr.Append(" | ");
                 packetHeadersStr.Append("Logon");
@@ -874,7 +924,7 @@ namespace ACE.PcapReader
                 packetHeadersStr.Append("Flow");
             }
 
-            return (int)(packetReader.BaseStream.Position - readStartPos);
+            return (int) (packetReader.BaseStream.Position - readStartPos);
         }
     }
 }
