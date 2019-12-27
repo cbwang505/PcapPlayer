@@ -15,7 +15,7 @@
 ## Console Commands
 * `pcap-load <full-path-to-pcap-file>` - Select the PCAP file to load for playback.
 * `pcap-login <login-#>` - Specify a login instance for pcap playback.
-* `teleportlist` - List the index and pcap line numbers of detected player teleport events. Use with the `@teleport <index>` command. 
+* `markerlist` - List the index and pcap line numbers of detected player teleport and login events. Use with the `pcap-login <login-#>` and `@teleport <index>` command. 
 
 ## In-Game Commands
 * `@teleport` - Advance the PCAP to the next teleport instance, if one exists.
