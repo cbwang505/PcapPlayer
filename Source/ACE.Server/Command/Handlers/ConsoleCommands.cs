@@ -6,6 +6,8 @@ using ACE.Entity.Enum;
 using ACE.Server.Network;
 using ACE.PcapReader;
 using Lifestoned.DataModel.Content;
+using ACE.Database.Models.Shard;
+using System.Runtime.Serialization;
 
 namespace ACE.Server.Command.Handlers
 {
@@ -158,6 +160,16 @@ namespace ACE.Server.Command.Handlers
             {
                 Console.WriteLine("Sorry, there are no login or teleport events in this pcap.");
             }
+        }
+
+        [CommandHandler("pause", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, 0,
+            "Pause or unpause Pcap playback", "")]
+        public static void HandlePause(Session session, params string[] parameters)
+        {
+            if (!session.PcapPaused)
+                session.PausePcapPlayback();
+            else
+                session.RestartPcapPlayback();
         }
     }
 }

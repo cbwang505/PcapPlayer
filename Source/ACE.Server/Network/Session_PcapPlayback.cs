@@ -18,6 +18,8 @@ namespace ACE.Server.Network
 
         private float PercentComplete = 0;
 
+        public bool PcapPaused = false;
+
         /// <summary>
         /// Being the playback. This is called when the player hits "Enter World" on the client.
         /// </summary>
@@ -32,6 +34,7 @@ namespace ACE.Server.Network
             pcapTimer.Elapsed += OnPcapTimer;
             pcapTimer.AutoReset = true;
             pcapTimer.Enabled = true;
+            PcapPaused = false;
         }
 
         public void PausePcapPlayback()
@@ -40,6 +43,7 @@ namespace ACE.Server.Network
             {
                 pcapTimer.Stop();
                 pcapTimer.Enabled = false;
+                PcapPaused = true;
                 Console.WriteLine("Pcap Playback Has Paused.");
             }
         }
@@ -57,6 +61,7 @@ namespace ACE.Server.Network
 
                 pcapTimer.Enabled = true;
                 pcapTimer.Start();
+                PcapPaused = false;
                 Console.WriteLine("Pcap Playback Has Restarted.");
             }
         }
@@ -67,6 +72,7 @@ namespace ACE.Server.Network
             {
                 pcapTimer.Stop();
                 pcapTimer.Dispose();
+                PcapPaused = false;
                 Console.WriteLine("Pcap Playback Has Stopped.");
 
                 PausedRecord = PCapReader.CurrentPcapRecordStart;
