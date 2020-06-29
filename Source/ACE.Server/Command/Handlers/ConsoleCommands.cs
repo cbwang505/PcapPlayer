@@ -46,21 +46,24 @@ namespace ACE.Server.Command.Handlers
             {
                 Console.WriteLine($"\n{PCapReader.LoginInstances} unique login events detected.");
                 if (PCapReader.LoginInstances > 1)
-                    Console.WriteLine(
-                        $"Please specify a login to use using the command 'pcap-login <login-#>', where <login-#> is 1 to {PCapReader.LoginInstances}\n");
+                    Console.WriteLine($"Please specify a login to use using the command 'pcap-login <login-#>', where <login-#> is 1 to {PCapReader.LoginInstances}\n");
                 Console.WriteLine("Login set to first instance.");
-                Console.WriteLine(
-                    $"Instance has {PCapReader.TeleportIndexes[1].Count} teleports. Use @teleport in-game to advance to next, or @teleport <index> to select a specific one.");
+
+                if (PCapReader.TeleportIndexes.ContainsKey(1))
+                    Console.WriteLine($"Instance has {PCapReader.TeleportIndexes[1].Count} teleports. Use @teleport in-game to advance to next, or @teleport <index> to select a specific one.");
+                else
+                    Console.WriteLine($"Instance has no teleports.");
 
                 Console.WriteLine($"StartRecordIndex: {PCapReader.StartRecordIndex}");
                 Console.WriteLine($"EndRecordIndex: {(PCapReader.EndRecordIndex - 1)}");
             }
             else
             {
-                Console.WriteLine(
-                    "\nNo login events detected. We will attempt to join this pcap already in progress.\n");
-                Console.WriteLine(
-                    $"Instance has {PCapReader.TeleportIndexes[0].Count} teleports. Use @teleport in-game to advance to next, or @teleport <index> to select a specific one.");
+                Console.WriteLine("\nNo login events detected. We will attempt to join this pcap already in progress.\n");
+                if (PCapReader.TeleportIndexes.ContainsKey(0))
+                    Console.WriteLine($"Instance has {PCapReader.TeleportIndexes[0].Count} teleports. Use @teleport in-game to advance to next, or @teleport <index> to select a specific one.");
+                else
+                    Console.WriteLine($"Instance has no teleports.");
             }
 
             Console.WriteLine("");
