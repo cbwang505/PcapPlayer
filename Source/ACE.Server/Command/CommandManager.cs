@@ -163,8 +163,6 @@ namespace ACE.Server.Command
 
         public static CommandHandlerResponse GetCommandHandler(Session session, string command, string[] parameters, out CommandHandlerInfo commandInfo)
         {
-            //return CommandHandlerResponse.Ok;
-
             if (command == null || parameters == null)
             {
                 commandInfo = null;
@@ -212,20 +210,22 @@ namespace ACE.Server.Command
             if ((commandInfo.Attribute.Flags & CommandHandlerFlag.ConsoleInvoke) != 0 && session != null)
                 return CommandHandlerResponse.NoConsoleInvoke;
 
-            // if (session != null)
+            if (session != null)
             {
-                bool isAdvocate = false;
-                bool isSentinel = false;
-                bool isEnvoy = isSentinel; // TODO: Add more resolution to player levels so we can separate IsEnvoy from IsSentinel
-                bool isArch = false;
-                bool isAdmin = true;
+                bool isAdvocate = session.Player.IsAdvocate;
+                bool isSentinel = session.Player.IsSentinel;
+                bool isArch = session.Player.IsArch;
+                bool isAdmin = session.Player.IsAdmin;
 
-                if (commandInfo.Attribute.Access == AccessLevel.Advocate && !(isAdvocate || isSentinel || isEnvoy || isArch || isAdmin || isSUDOauthorized)
-                    || commandInfo.Attribute.Access == AccessLevel.Sentinel && !(isSentinel || isEnvoy || isArch || isAdmin || isSUDOauthorized)
-                    || commandInfo.Attribute.Access == AccessLevel.Envoy && !(isEnvoy || isArch || isAdmin || isSUDOauthorized)
+                if (commandInfo.Attribute.Access == AccessLevel.Advocate && !(isAdvocate || isSentinel || isArch || isAdmin || isSUDOauthorized)
+                    || commandInfo.Attribute.Access == AccessLevel.Sentinel && !(isSentinel || isArch || isAdmin || isSUDOauthorized)
+                    || commandInfo.Attribute.Access == AccessLevel.Envoy && !(isArch || isAdmin || isSUDOauthorized)
                     || commandInfo.Attribute.Access == AccessLevel.Developer && !(isArch || isAdmin || isSUDOauthorized)
                     || commandInfo.Attribute.Access == AccessLevel.Admin && !(isAdmin || isSUDOauthorized))
+                {
+                    Console.WriteLine($"Permission denied.");
                     return CommandHandlerResponse.NotAuthorized;
+                }
             }
 
             if (commandInfo.Attribute.ParameterCount != -1 && parameters.Length < commandInfo.Attribute.ParameterCount)
@@ -236,10 +236,12 @@ namespace ACE.Server.Command
                 return CommandHandlerResponse.InvalidParameterCount;
             }
 
-            /*
             if ((commandInfo.Attribute.Flags & CommandHandlerFlag.RequiresWorld) != 0 && (session == null || session.Player == null || session.Player.CurrentLandblock == null))
+            {
+                Console.WriteLine($"This command must be run from within the game.");
                 return CommandHandlerResponse.NotInWorld;
-                */
+            }
+
             if (isSUDOauthorized)
                 return CommandHandlerResponse.SudoOk;
 

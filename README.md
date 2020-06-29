@@ -20,6 +20,7 @@
 ## In-Game Commands
 * `@teleport` - Advance the PCAP to the next teleport instance, if one exists.
 * `@teleport <index-#>` - Advance to the specified player teleport event (zero-based index). Use `markerlist` in the server console to display the list of valid indexes, if any.
+* `@pause` - Pause or unpause Pcap playback; this commands works as a toggle.
 
 ## Recommended Tools
 * ACLogView [on Github](https://github.com/ACEmulator/aclogview) to view Pcaps.
